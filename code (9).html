@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Block Puzzle</title>
+    <style>
+        :root { 
+            --bg-darkest: #12121d; --bg-dark: #1e1e2f; --panel-bg: #2a2a3e;
+            --panel-highlight: #3c3c52; --primary-accent: #6a5acd; 
+            --primary-accent-rgb: 106, 90, 205; --primary-hover: #7b68ee;
+            --primary-active: #5a4bad; --secondary-accent: #3b71ca; 
+            --secondary-hover: #4a81da; --positive-accent: #28a745; 
+            --positive-hover: #38b755; --negative-accent: #dc3545;
+            --negative-hover: #ec4555; --text-light: #e0e0e0; 
+            --text-medium: #ada0e6; --text-on-button: #ffffff;
+            --shadow-color-light: rgba(255, 255, 255, 0.05); 
+            --shadow-color-dark: rgba(0, 0, 0, 0.5);
+            --highlight-flash-color: #FFFFFF;
+            --canvas-border-color: #333;
+            --main-menu-bg-image: url('start_background.jpg');
+            --main-menu-bg-color: transparent; 
+        }
+        .theme-minimal-light {
+            --bg-darkest: #f4f6f8; --bg-dark: #e9edf0; --panel-bg: #ffffff;
+            --panel-highlight: #f5f5f5; --primary-accent: #546e7a; 
+            --primary-accent-rgb: 84, 110, 122; --primary-hover: #607d8b;
+            --primary-active: #455a64; --secondary-accent: #0288d1; 
+            --secondary-hover: #03a9f4; --positive-accent: #43a047; 
+            --positive-hover: #66bb6a; --negative-accent: #e53935; 
+            --negative-hover: #ef5350; --text-light: #263238; 
+            --text-medium: #0277bd; --text-on-button: #ffffff;
+            --shadow-color-light: rgba(0, 0, 0, 0.08); 
+            --shadow-color-dark: rgba(0, 0, 0, 0.15); 
+            --canvas-border-color: #bdc3c7;
+            --main-menu-bg-image: none;
+            --main-menu-bg-color: #e9edf0;
+        }
+        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-dark); color: var(--text-light); box-sizing: border-box; transition: background-color 0.3s, color 0.3s; }
+        *, *:before, *:after { box-sizing: inherit; }
+        #mainMenuScreen, #modeSelectScreen, #fullPauseMenu, #settingsPanel, #gameOverScreen, #themeSelectPanel { display: none; position: fixed; top: 50%; left: 50%; z-index: 100; flex-direction: column; align-items: center; background: linear-gradient(145deg, var(--panel-bg), var(--panel-highlight)); padding: 30px 25px; border-radius: 18px; border: 1px solid var(--shadow-color-light); box-shadow: 0 8px 25px var(--shadow-color-dark); min-width: 310px; width: 88%; max-width: 380px; opacity: 0; transform: translate(-50%, -50%) scale(0.93); transition: opacity 0.25s ease-out, transform 0.25s cubic-bezier(0.25, 0.1, 0.25, 1.5), background 0.3s, border-color 0.3s, box-shadow 0.3s; }
+        #settingsPanel, #themeSelectPanel { z-index: 200; }
+        #mainMenuScreen { background-image: var(--main-menu-bg-image); background-color: var(--main-menu-bg-color); background-size: cover; background-position: center; background-repeat: no-repeat; transition: background-image 0.3s, background-color 0.3s; }
+        .screen-active { opacity: 1 !important; transform: translate(-50%, -50%) scale(1) !important; }
+        #gameScreen.screen-active { opacity: 1 !important; transform: scale(1) !important; }
+        #gameScreen { display: none; flex-direction: column; width: 100%; height: 100%; background-color: var(--bg-darkest); justify-content: space-between; opacity: 0; transform: scale(0.98); transition: opacity 0.3s ease-out, transform 0.3s ease-out, background-color 0.3s; }
+        h1, h2 { color: var(--text-medium); margin-top: 0; margin-bottom: 25px; text-shadow: 1px 1px 2px var(--shadow-color-dark); transition: color 0.3s, text-shadow 0.3s; }
+        #mainMenuScreen h1 { font-size: 2.8em; margin-bottom: 30px; color: var(--text-on-button); text-shadow: 2px 2px 6px rgba(0,0,0,0.7); }
+        #modeSelectScreen h2 { font-size: 1.8em; }
+        button, .button { background: linear-gradient(145deg, var(--primary-accent), var(--primary-hover)); color: var(--text-on-button); border: none; padding: 14px 30px; border-radius: 30px; font-size: 1.15em; font-weight: 600; cursor: pointer; margin: 10px 5px; min-width: 230px; text-shadow: 1px 1px 2px rgba(0,0,0,0.4); box-shadow: 0 5px 15px rgba(0,0,0,0.3), inset 0 -3px 2px rgba(0,0,0,0.15), inset 0 2px 1px rgba(255,255,255,0.15); transition: background 0.2s, transform 0.15s, opacity 0.15s, box-shadow 0.15s, color 0.3s; }
+        button:hover, .button:hover { background: linear-gradient(145deg, var(--primary-hover), var(--primary-accent)); box-shadow: 0 7px 18px rgba(0,0,0,0.4), inset 0 -3px 2px rgba(0,0,0,0.15), inset 0 2px 1px rgba(255,255,255,0.15); transform: translateY(-2px); }
+        button:active, .button:active { background: linear-gradient(145deg, var(--primary-active), var(--primary-accent)); transform: translateY(1px) scale(0.96); box-shadow: 0 2px 8px rgba(0,0,0,0.45), inset 0 2px 3px rgba(0,0,0,0.25); opacity: 0.75; }
+        #mainMenuScreen button, #modeSelectScreen button { width: 90%; max-width: 280px; }
+        .grey-button { background: linear-gradient(145deg, #5a5a6a, #6b6b7b); } 
+        .grey-button:hover { background: linear-gradient(145deg, #6b6b7b, #7c7c8c); }
+        .grey-button:active { background: linear-gradient(145deg, #4a4a5a, #5a5a6a); opacity: 0.75; }
+        #topBar { display: flex; justify-content: space-around; align-items: center; padding: 10px 10px; background-color: var(--panel-bg); width: 100%; flex-shrink: 0; border-bottom: 1px solid var(--shadow-color-light); transition: background-color 0.3s, border-bottom 0.3s; }
+        #topBar button { padding: 8px 10px; font-size: 0.9em; min-width: auto; margin: 0 5px; border-radius: 8px; box-shadow: none; text-shadow: none; color: var(--text-light); transition: background-color 0.2s, opacity 0.15s, transform 0.15s, color 0.3s; }
+        #topBar button:active { opacity: 0.8; transform: scale(0.98); }
+        #optionsBtnGame, #themeBtnGame { background-color: var(--secondary-accent); font-size: 1.4em; padding: 6px 10px; } 
+        #optionsBtnGame:hover, #themeBtnGame:hover { background-color: var(--secondary-hover); }
+        #pauseResumeBtn { background-color: var(--negative-accent); } 
+        #pauseResumeBtn:hover { background-color: var(--negative-hover); }
+        #pauseResumeBtn.resume-state { background-color: var(--positive-accent); } 
+        #pauseResumeBtn.resume-state:hover { background-color: var(--positive-hover); }
+        #scoreLevelDisplay { display: flex; flex-direction: column; align-items: center; font-weight: bold; color: var(--text-light); line-height: 1.3; transition: color 0.3s; }
+        #scoreLevelDisplay .info-line { font-size: 0.95em; text-shadow: 1px 1px 2px var(--shadow-color-dark); transition: text-shadow 0.3s;}
+        #scoreLevelDisplay .info-line.highlight { transform: scale(1.2) translateY(-2px); color: var(--positive-accent); transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.2s; }
+        #gameCanvasContainer { position: relative; display: flex; justify-content: center; align-items: center; flex-grow: 1; width: 100%; overflow: hidden; }
+        #gameCanvas { border: 1px solid var(--canvas-border-color); background-color: #000; box-shadow: inset 0 0 15px rgba(0,0,0,0.7); transition: border-color 0.3s; }
+        #pausedTextOverlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 50; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+        #pausedTextOverlay span { color: white; font-size: 2.5em; font-weight: bold; padding: 20px 35px; background-color: rgba(var(--primary-accent-rgb),0.85); border-radius: 12px; text-shadow: 1px 1px 3px var(--shadow-color-dark); }
+        .game-message { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0.7); background-color: rgba(var(--primary-accent-rgb), 0.92); color: white; padding: 18px 35px; border-radius: 12px; font-size: 2.5em; font-weight: 700; text-shadow: 2px 2px 3px rgba(0,0,0,0.4); box-shadow: 0 4px 12px rgba(0,0,0,0.25); display: none; opacity: 0; z-index: 60; text-align: center; transition: opacity 0.25s ease-out, transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.3s; }
+        .game-message.show { display: block; opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        #gameOverScreen #finalScoreDisplay { font-size: 3.2em; font-weight: 700; color: var(--primary-hover); margin: 15px 0 25px 0; text-shadow: 2px 2px 0px var(--panel-bg), 3px 3px 0px var(--primary-active), 5px 5px 8px var(--shadow-color-dark); line-height: 1.1; transition: color 0.3s, text-shadow 0.3s; }
+        #gameOverScreen h2 { font-size: 2.2em; color: var(--negative-accent); margin-bottom: 10px; transition: color 0.3s;}
+        #gameOverScreen p { margin: 8px 0; }
+        #controlsBar { display: flex; justify-content: center; align-items: center; padding: 12px 10px; background-color: var(--panel-bg); width: 100%; flex-shrink: 0; border-top: 1px solid var(--shadow-color-light); transition: background-color 0.3s, border-top 0.3s; }
+        .control-button { background-color: var(--primary-accent); color: var(--text-on-button); font-size: 1.6em; width: 52px; height: 52px; border-radius: 12px; margin: 0 6px; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 7px rgba(0,0,0,0.3), inset 0 -1px 1px rgba(0,0,0,0.1), inset 0 1px 0px rgba(255,255,255,0.08); padding:0; min-width: auto; transition: background 0.15s ease-out, transform 0.1s ease-out, box-shadow 0.15s ease-out, color 0.3s; }
+        .control-button:hover { background-color: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 5px 10px rgba(0,0,0,0.35), inset 0 -1px 1px rgba(0,0,0,0.1), inset 0 1px 0px rgba(255,255,255,0.08); }
+        .control-button:active { background-color: var(--primary-active); transform: translateY(1px) scale(0.95); box-shadow: 0 1px 4px rgba(0,0,0,0.4), inset 0 1px 2px rgba(0,0,0,0.2); }
+        #fullPauseMenu h2, #settingsPanel h2, #themeSelectPanel h2 { margin-bottom: 20px; }
+        #volumeSlider { width: 80%; margin: 20px auto; }
+        label[for="volumeSlider"] { display: block; margin-bottom: 8px; font-size: 1.1em; }
+        #themeSelectorButtons { margin-top: 10px; } 
+        #themeSelectorButtons h4 { color: var(--text-medium); margin-bottom: 10px; transition: color 0.3s; }
+        .theme-button { min-width: 120px; padding: 10px 15px; font-size: 0.9em; margin: 5px; }
+    </style>
+</head>
+<body>
+    <!-- HTML Structure -->
+    <div id="mainMenuScreen" class="screen"><h1>Block Puzzle</h1><button id="startGameBtnMainMenu">Start Game</button><button id="settingsBtnMainMenu" class="grey-button">Settings</button></div>
+    <div id="modeSelectScreen" class="screen"><h2>SELECT GAME MODE</h2><button data-mode="MARATHON">Marathon</button><button data-mode="SPRINT">Sprint (40 Lines)</button><button data-mode="ULTRA">Ultra (2 Min)</button><button id="backToMainFromModeBtn" class="grey-button">Back to Main</button></div>
+    <div id="gameScreen"> 
+        <div id="topBar"><button id="optionsBtnGame">⚙️</button><button id="themeBtnGame">🎨</button><div id="scoreLevelDisplay"><span id="topInfoLine" class="info-line">SCORE: 0</span><span id="bottomInfoLine" class="info-line">LEVEL: 1</span></div><button id="pauseResumeBtn">Pause</button></div>
+        <div id="gameCanvasContainer"><canvas id="gameCanvas"></canvas><div id="pausedTextOverlay"><span>Paused</span></div></div>
+        <div id="levelUpMessage" class="game-message">LEVEL UP!</div>
+        <div id="controlsBar"><button id="moveLeftBtn" class="control-button">←</button><button id="rotateBtn" class="control-button">↻</button><button id="moveRightBtn" class="control-button">→</button><button id="softDropBtn" class="control-button">↓</button></div>
+    </div>
+    <div id="fullPauseMenu" class="screen"><h2>Game Menu</h2><button id="resumeBtnFullPause">Resume</button><button id="restartBtnFullPause" class="grey-button">Restart</button><button id="settingsBtnFullPause" class="grey-button">Settings</button><button id="mainMenuBtnFullPause" class="grey-button">Main Menu</button></div>
+    <div id="settingsPanel" class="screen"> 
+        <h2>Settings</h2>
+        <div><label for="volumeSlider">Volume:</label><input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="0.5"></div>
+        <button id="muteBtn" class="grey-button" style="margin-top:15px;">Mute Sounds</button>
+        <button id="closeSettingsGeneralBtn" class="grey-button" style="margin-top: 15px;">Back</button>
+    </div>
+    <div id="themeSelectPanel" class="screen">
+        <h2>Select Theme</h2>
+        <div id="themeSelectorButtons">
+            <button class="theme-button" data-theme="theme-classic-dark">Classic Dark</button>
+            <button class="theme-button" data-theme="theme-minimal-light">Minimal Light</button>
+        </div>
+        <button id="closeThemePanelBtn" class="grey-button" style="margin-top: 20px;">Back</button>
+    </div>
+    <div id="gameOverScreen" class="screen"><h2 id="gameOverTitle">GAME OVER!</h2><p id="finalScoreDisplay">Score: 0</p> <p id="finalDetailDisplay">Level: 1</p><button id="playAgainBtn">Play Again</button><button id="mainMenuBtnGameOver" class="grey-button">Main Menu</button></div>
+
+    <audio id="moveSound" src="move_sfx.mp3"></audio><audio id="rotateSound" src="rotate_sfx.mp3"></audio><audio id="dropSound" src="soft_drop_land.mp3"></audio><audio id="lineClearSound" src="line_clear_sfx.mp3"></audio><audio id="levelUpSound" src="level_up.mp3"></audio><audio id="gameOverSound" src="game_over_sfx.mp3"></audio><audio id="clickSound" src="click.mp3"></audio>
+    <audio id="mainMenuMusic" loop src="main_menu_music.mp3"></audio> 
+    <audio id="gameplayMusic" loop src="gameplay_music.mp3"></audio>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const COLS = 10; const ROWS = 15; 
+        const gameCanvasContainer = document.getElementById('gameCanvasContainer');
+        let BLOCK_SIZE; 
+        let isLineClearingAnimation = false; let lineClearAnimationTimer = 0;
+        const LINE_CLEAR_ANIMATION_DURATION = 250; let linesBeingCleared = []; 
+        let JS_BLOCK_COLORS = {}; 
+        const SHAPES = [ [], [[1,1,1,1]], [[1,0,0], [1,1,1]], [[0,0,1], [1,1,1]], [[1,1], [1,1]], [[0,1,1], [1,1,0]], [[0,1,0], [1,1,1]], [[1,1,0], [0,1,1]] ];
+        let grid, currentBlock, nextBlock, score, level, linesClearedTotal, gameMode, timer;
+        let sprintLinesTarget = 40, ultraTimeLimit = 2 * 60 * 1000; 
+        let dropCounter, dropInterval, lastTime;
+        let isPaused = false, isGameOver = false, animationFrameId = null;
+        let gameVolume = 0.5;
+        let currentOpenPanel = null; // Tracks the currently open popup panel (fullPauseMenu, settingsPanel, themeSelectPanel)
+        let isMuted = false;
+
+        const sounds = { move: document.getElementById('moveSound'), rotate: document.getElementById('rotateSound'), drop: document.getElementById('dropSound'), lineClear: document.getElementById('lineClearSound'), levelUp: document.getElementById('levelUpSound'), gameOver: document.getElementById('gameOverSound'), click: document.getElementById('clickSound')};
+        const mainMenuMusic = document.getElementById('mainMenuMusic');
+        const gameplayMusic = document.getElementById('gameplayMusic');
+        
+        const mainMenuScreen = document.getElementById('mainMenuScreen');
+        const modeSelectScreen = document.getElementById('modeSelectScreen');
+        const gameScreen = document.getElementById('gameScreen');
+        const fullPauseMenu = document.getElementById('fullPauseMenu');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const themeSelectPanel = document.getElementById('themeSelectPanel');
+        const pausedTextOverlay = document.getElementById('pausedTextOverlay');
+        const pauseResumeBtn = document.getElementById('pauseResumeBtn');
+        const topInfoLine = document.getElementById('topInfoLine'); 
+        const bottomInfoLine = document.getElementById('bottomInfoLine');
+        const levelUpMessageElement = document.getElementById('levelUpMessage');
+        const root = document.documentElement; 
+        const muteBtn = document.getElementById('muteBtn');
+
+        function playSound(soundName) { if (isMuted && soundName !== 'click') return; if (sounds[soundName]) { sounds[soundName].currentTime = 0; sounds[soundName].volume = (soundName === 'click' && isMuted) ? 0.1 : gameVolume; sounds[soundName].play().catch(e => {}); } }
+        function updateVolume(newVolume) { gameVolume = parseFloat(newVolume); for (const key in sounds) { if (sounds[key]) sounds[key].volume = gameVolume; } mainMenuMusic.volume = isMuted ? 0 : gameVolume; gameplayMusic.volume = isMuted ? 0 : gameVolume; }
+        document.getElementById('volumeSlider').addEventListener('input', (e) => updateVolume(e.target.value));
+        function playMainMenuMusic() { if (isMuted) return; if (gameplayMusic) gameplayMusic.pause(); if (mainMenuMusic) { mainMenuMusic.volume = gameVolume; mainMenuMusic.play().catch(e => {});}}
+        function playGameMusic() { if (isMuted) return; if (mainMenuMusic) mainMenuMusic.pause(); if (gameplayMusic) { gameplayMusic.volume = gameVolume; gameplayMusic.play().catch(e => {});}}
+        function stopAllMusic() { if (mainMenuMusic) {mainMenuMusic.pause(); mainMenuMusic.currentTime = 0;} if (gameplayMusic) {gameplayMusic.pause(); gameplayMusic.currentTime = 0;}}
+        function toggleMute() { isMuted = !isMuted; localStorage.setItem('isGameMuted', isMuted.toString()); updateMuteButtonText(); if (isMuted) { if(mainMenuMusic) mainMenuMusic.pause(); if(gameplayMusic) gameplayMusic.pause(); } else { let activeScreenElement = getActiveScreenElement(); if (activeScreenElement === gameScreen && !isPaused) playGameMusic(); else if (activeScreenElement !== gameScreen) playMainMenuMusic(); } if(mainMenuMusic) mainMenuMusic.volume = isMuted ? 0 : gameVolume; if(gameplayMusic) gameplayMusic.volume = isMuted ? 0 : gameVolume; }
+        function updateMuteButtonText() { if (muteBtn) muteBtn.textContent = isMuted ? "Unmute All" : "Mute All"; }
+        if (muteBtn) muteBtn.addEventListener('click', () => { toggleMute(); playSound('click'); });
+
+        const themeDefinitions = { 'theme-classic-dark': { blockColors: { 1: '#00f0f0', 2: '#0000f0', 3: '#f0a000', 4: '#f0f000', 5: '#00f000', 6: '#a000f0', 7: '#f00000' }, lineClearFlash: '#FFFFFF' }, 'theme-minimal-light': { blockColors: { 1: '#80deea', 2: '#90caf9', 3: '#ffcc80', 4: '#fff59d', 5: '#a5d6a7', 6: '#ce93d8', 7: '#ef9a9a' }, lineClearFlash: '#424242' } };
+        function applyTheme(themeClassName) { document.body.className = ''; if (themeClassName && themeClassName !== "null" && themeDefinitions[themeClassName]) { document.body.classList.add(themeClassName); } else { document.body.classList.add('theme-classic-dark'); themeClassName = 'theme-classic-dark'; } const currentThemeDef = themeDefinitions[themeClassName]; for (let i = 1; i <= 7; i++) JS_BLOCK_COLORS[i] = currentThemeDef.blockColors[i]; JS_BLOCK_COLORS['LINE_CLEAR_FLASH_COLOR'] = currentThemeDef.lineClearFlash; localStorage.setItem('selectedThemeClass', themeClassName); if (gameScreen.classList.contains('screen-active')) draw(); }
+        const themeButtons = document.querySelectorAll('#themeSelectPanel .theme-button');
+        themeButtons.forEach(button => { button.addEventListener('click', () => { applyTheme(button.dataset.theme); playSound('click'); }); });
+        
+        function getActiveScreenElement() {
+            const allScreens = [mainMenuScreen, modeSelectScreen, gameScreen, fullPauseMenu, settingsPanel, gameOverScreen, themeSelectPanel];
+            for (let screen of allScreens) {
+                if (screen.classList.contains('screen-active')) return screen;
+            }
+            return null;
+        }
+
+        // --- REFINED showScreen FUNCTION ---
+        function showScreen(screenElementToShow) {
+            console.log("showScreen called for:", screenElementToShow ? screenElementToShow.id : "null", "| Current activePanel was:", currentOpenPanel ? currentOpenPanel.id : "null");
+            const allScreens = [mainMenuScreen, modeSelectScreen, gameScreen, fullPauseMenu, settingsPanel, gameOverScreen, themeSelectPanel];
+            
+            allScreens.forEach(s => {
+                if (s !== screenElementToShow) { 
+                    if (s.classList.contains('screen-active')) {
+                        s.classList.remove('screen-active');
+                        s.addEventListener('transitionend', function handleHide() {
+                            s.style.display = 'none';
+                            s.removeEventListener('transitionend', handleHide);
+                        }, { once: true });
+                    } else {
+                        s.style.display = 'none'; 
+                    }
+                }
+            });
+
+            if (screenElementToShow) {
+                screenElementToShow.style.display = 'flex'; 
+                requestAnimationFrame(() => { requestAnimationFrame(() => { screenElementToShow.classList.add('screen-active'); }); });
+                currentOpenPanel = screenElementToShow; // Update the currently open panel
+                
+                if (screenElementToShow.id === 'gameScreen') {
+                     if (isPaused) togglePauseResume(false); // Auto-resume IF returning to game screen
+                     setTimeout(calculateBlockSize, 0); 
+                } else if (['mainMenuScreen', 'modeSelectScreen', 'gameOverScreen'].includes(screenElementToShow.id) ) {
+                    playMainMenuMusic();
+                } else if (['settingsPanel', 'fullPauseMenu', 'themeSelectPanel'].includes(screenElementToShow.id)) {
+                     // If game was active, it should have been paused before showing these panels
+                    if (!gameScreen.classList.contains('screen-active') || isGameOver) {
+                        playMainMenuMusic();
+                    }
+                }
+            }
+            playSound('click'); 
+        }
+        
+        // --- REFINED togglePauseResume FUNCTION ---
+        function togglePauseResume(forcePause) {
+            console.log("togglePauseResume - forcePause:", forcePause, "current isPaused:", isPaused, "currentOpenPanel:", currentOpenPanel ? currentOpenPanel.id : "null");
+            if (isGameOver || isLineClearingAnimation) return;
+
+            let newPauseState = (typeof forcePause === 'boolean') ? forcePause : !isPaused;
+
+            // Prevent unpausing from top-bar button if a sub-panel (settings/theme from game) is open
+            if (!newPauseState && currentOpenPanel && (currentOpenPanel === settingsPanel || currentOpenPanel === themeSelectPanel) && previousScreenBeforePopup === gameScreen) {
+                console.log("Cannot unpause via top bar: Close settings/theme panel first.");
+                return;
+            }
+            
+            isPaused = newPauseState;
+            console.log("isPaused is now:", isPaused);
+
+            if (isPaused) {
+                pauseResumeBtn.textContent = 'Resume'; pauseResumeBtn.classList.add('resume-state');
+                pausedTextOverlay.style.display = 'flex';
+                if(gameplayMusic) gameplayMusic.pause();
+                if(animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
+            } else { // Resuming
+                // Only resume game loop if no other modal is intended to be open on top of game screen
+                if (currentOpenPanel === gameScreen || currentOpenPanel === fullPauseMenu) { // Resuming from full pause or directly
+                    pauseResumeBtn.textContent = 'Pause'; pauseResumeBtn.classList.remove('resume-state');
+                    pausedTextOverlay.style.display = 'none';
+                    lastTime = performance.now(); 
+                    if(!isMuted && gameplayMusic) gameplayMusic.play().catch(e=>{});
+                    if(!animationFrameId && !isGameOver) gameLoop();
+                }
+            }
+        }
+
+        // --- Event Listeners (Adjusted for better state management) ---
+        document.getElementById('startGameBtnMainMenu').addEventListener('click', () => showScreen(modeSelectScreen));
+        document.getElementById('settingsBtnMainMenu').addEventListener('click', () => { previousScreenBeforePopup = mainMenuScreen; showScreen(settingsPanel); });
+        document.querySelectorAll('#modeSelectScreen button[data-mode]').forEach(button => { button.addEventListener('click', () => { gameMode = button.dataset.mode; startGame(gameMode); });});
+        document.getElementById('backToMainFromModeBtn').addEventListener('click', () => showScreen(mainMenuScreen));
+        
+        const closeSettingsGeneralBtn = document.getElementById('closeSettingsGeneralBtn');
+        if(closeSettingsGeneralBtn) closeSettingsGeneralBtn.addEventListener('click', () => {
+            playSound('click'); 
+            showScreen(previousScreenBeforePopup || mainMenuScreen); // Go to stored prev screen or main menu
+            previousScreenBeforePopup = null;
+        });
+
+        const themeBtnGame = document.getElementById('themeBtnGame');
+        if(themeBtnGame) themeBtnGame.addEventListener('click', () => {
+            if (isGameOver) return; 
+            previousScreenBeforePopup = currentOpenPanel; // Store current screen (could be gameScreen or fullPauseMenu)
+            if (!isPaused) togglePauseResume(true); // Pause game if it's running
+            showScreen(themeSelectPanel);
+        });
+
+        const closeThemePanelBtn = document.getElementById('closeThemePanelBtn');
+        if(closeThemePanelBtn) closeThemePanelBtn.addEventListener('click', () => {
+            playSound('click'); 
+            showScreen(previousScreenBeforePopup || mainMenuScreen); // Go to stored prev screen or main menu
+            previousScreenBeforePopup = null;
+        });
+
+        document.getElementById('optionsBtnGame').addEventListener('click', () => { 
+            if (isGameOver) return; 
+            previousScreenBeforePopup = gameScreen;
+            if (!isPaused) togglePauseResume(true); 
+            showScreen(settingsPanel); 
+        });
+        document.getElementById('settingsBtnFullPause').addEventListener('click', () => { 
+            previousScreenBeforePopup = fullPauseMenu; // Important: came from fullPauseMenu
+            showScreen(settingsPanel); 
+        });
+        
+        pauseResumeBtn.addEventListener('click', () => {
+            if (currentOpenPanel === gameScreen || currentOpenPanel === fullPauseMenu) { // Only allow direct toggle if on game or full pause
+                togglePauseResume();
+            } else {
+                console.log("Pause button clicked but a different panel is active:", currentOpenPanel ? currentOpenPanel.id : "null");
+            }
+        });
+        
+        document.getElementById('resumeBtnFullPause').addEventListener('click', () => { togglePauseResume(false); showScreen(gameScreen); });
+        document.getElementById('restartBtnFullPause').addEventListener('click', () => { startGame(gameMode); }); // showScreen(gameScreen) will be called by startGame
+        document.getElementById('mainMenuBtnFullPause').addEventListener('click', () => { if (animationFrameId) cancelAnimationFrame(animationFrameId); animationFrameId=null; isPaused = false; isGameOver = true; showScreen(mainMenuScreen); });
+        document.getElementById('playAgainBtn').addEventListener('click', () => startGame(gameMode));
+        document.getElementById('mainMenuBtnGameOver').addEventListener('click', () => { showScreen(mainMenuScreen);});
+
+        // --- CORE GAME LOGIC (Unchanged from your stable version) ---
+        function calculateBlockSize() { const cH = gameCanvasContainer.clientHeight, cW = gameCanvasContainer.clientWidth; if(cH > 0 && cW > 0){ BLOCK_SIZE = Math.floor(Math.min(cH/ROWS, cW/COLS, 35)); canvas.width = COLS * BLOCK_SIZE; canvas.height = ROWS * BLOCK_SIZE; } else { BLOCK_SIZE = 20; canvas.width=COLS*BLOCK_SIZE; canvas.height=ROWS*BLOCK_SIZE; setTimeout(calculateBlockSize,50); } }
+        function createGrid(rows, cols) { return Array.from({ length: rows }, () => Array(cols).fill(0)); }
+        function createBlock() { const tI = Math.floor(Math.random()*(SHAPES.length-1))+1; const sh = SHAPES[tI]; return { x:Math.floor(COLS/2)-Math.floor(sh[0].length/2), y:0, shape:sh, colorId:tI }; }
+        function isValidMove(b,nX,nY,nS){const sTT=nS||b.shape;for(let r=0;r<sTT.length;r++)for(let c=0;c<sTT[r].length;c++)if(sTT[r][c]){let gX=nX+c,gY=nY+r;if(gX<0||gX>=COLS||gY>=ROWS||(gY>=0&&grid[gY]&&grid[gY][gX]))return false;}return true;}
+        function moveBlock(dX,dY){if(isPaused||isGameOver||isLineClearingAnimation)return false;if(isValidMove(currentBlock,currentBlock.x+dX,currentBlock.y+dY,currentBlock.shape)){currentBlock.x+=dX;currentBlock.y+=dY;if(dX!==0)playSound('move');return true;}return false;}
+        function rotateBlock(){if(isPaused||isGameOver||isLineClearingAnimation)return;const oS=currentBlock.shape;const nS=oS[0].map((_,i)=>oS.map(r=>r[i]).reverse());let oX=0;if(!isValidMove(currentBlock,currentBlock.x,currentBlock.y,nS)){if(isValidMove(currentBlock,currentBlock.x+1,currentBlock.y,nS))oX=1;else if(isValidMove(currentBlock,currentBlock.x-1,currentBlock.y,nS))oX=-1;else if(isValidMove(currentBlock,currentBlock.x+2,currentBlock.y,nS))oX=2;else if(isValidMove(currentBlock,currentBlock.x-2,currentBlock.y,nS))oX=-2;else return;}currentBlock.shape=nS;currentBlock.x+=oX;playSound('rotate');}
+        function softDrop(){if(isPaused||isGameOver||isLineClearingAnimation)return;if(moveBlock(0,1))dropCounter=0;else fixBlock();}
+        function fixBlock(){currentBlock.shape.forEach((rw,r)=>rw.forEach((v,c)=>{if(v){if(currentBlock.y+r<0){handleGameOver();return;}grid[currentBlock.y+r][currentBlock.x+c]=currentBlock.colorId;}}));if(isGameOver)return;playSound('drop');clearLines(); if (!isLineClearingAnimation) { currentBlock = nextBlock;nextBlock = createBlock();if (!isValidMove(currentBlock, currentBlock.x, currentBlock.y, currentBlock.shape)) {handleGameOver();}}}
+        function clearLines() {let lF=0;linesBeingCleared=[];for(let r=ROWS-1;r>=0;r--){if(grid[r].every(c=>c!==0&&c!==undefined)){lF++;linesBeingCleared.push(r);}}if(lF>0){isLineClearingAnimation=true;lineClearAnimationTimer=0;playSound('lineClear');}return lF;}
+        function updateScore(l){score+=[0,100,300,500,800][l]*level;} 
+        function updateLevel(){if(gameMode!=="MARATHON")return;const lPL=10;if(linesClearedTotal>=level*lPL){level++;dropInterval=Math.max(100,dropInterval-50);playSound('levelUp');if(levelUpMessageElement){levelUpMessageElement.textContent=`LEVEL ${level}!`;levelUpMessageElement.classList.add('show');setTimeout(()=>{levelUpMessageElement.classList.remove('show');},1800);}if(bottomInfoLine){bottomInfoLine.classList.add('highlight');setTimeout(()=>{bottomInfoLine.classList.remove('highlight');},1800);}}}
+        function checkSprintComplete(){if(linesClearedTotal>=sprintLinesTarget)handleGameOver(true);}
+        function updateTimer(dT){if(gameMode==="ULTRA"&&!isGameOver){timer-=dT;if(timer<=0){timer=0;handleGameOver(true);}}else if(gameMode==="SPRINT"&&!isGameOver)timer+=dT;}
+        function handleGameOver(mS=false){if(isGameOver)return;isGameOver=true;cancelAnimationFrame(animationFrameId);animationFrameId=null;stopAllMusic();playSound('gameOver');const fSDE=document.getElementById('finalScoreDisplay'),fDDE=document.getElementById('finalDetailDisplay'),gTE=document.getElementById('gameOverTitle');let dS=0;const aFS=score;fSDE.textContent=`Score: 0`;if(aFS>0){let sCU=setInterval(()=>{if(dS<aFS){dS=Math.min(dS+Math.ceil(aFS/50),aFS);fSDE.textContent=`Score: ${dS}`;}},20);}if(gameMode==="MARATHON"){gTE.textContent="GAME OVER!";fDDE.textContent=`Level Reached: ${level}`;}else if(gameMode==="SPRINT"){if(mS){gTE.textContent=`${sprintLinesTarget} LINES!`;fDDE.textContent=`Time: ${formatTime(timer)}`;}else{gTE.textContent="GAME OVER!";fDDE.textContent=`Lines: ${linesClearedTotal}/${sprintLinesTarget}`;}}else if(gameMode==="ULTRA"){gTE.textContent="TIME'S UP!";fDDE.textContent=`Lines Cleared: ${linesClearedTotal}`;}showScreen(gameOverScreen);}
+        function formatTime(ms){let s=Math.floor(ms/1000),m=Math.floor(s/60);s%=60;let ml=Math.floor((ms%1000)/10);return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}.${ml.toString().padStart(2,'0')}`; }
+        function drawBlockOnCanvas(cU,s,x,y,cI,sZ){cU.fillStyle=JS_BLOCK_COLORS[cI];s.forEach((r,rI)=>r.forEach((v,cII)=>{if(v)cU.fillRect((x+cII)*sZ,(y+rI)*sZ,sZ-1,sZ-1);}));}
+        function drawGrid(){for(let r=0;r<ROWS;r++){let iLF=isLineClearingAnimation&&linesBeingCleared.includes(r);for(let c=0;c<COLS;c++){if(grid[r][c]){let cTD;if(iLF){let fP=Math.floor(lineClearAnimationTimer/(LINE_CLEAR_ANIMATION_DURATION/6))%2;cTD=fP===0?JS_BLOCK_COLORS['LINE_CLEAR_FLASH_COLOR']:JS_BLOCK_COLORS[grid[r][c]];}else{cTD=JS_BLOCK_COLORS[grid[r][c]];}ctx.fillStyle=cTD;ctx.fillRect(c*BLOCK_SIZE,r*BLOCK_SIZE,BLOCK_SIZE-1,BLOCK_SIZE-1);}}}}
+        function drawUI(){if(gameMode==="MARATHON"){topInfoLine.textContent=`SCORE: ${score}`;bottomInfoLine.textContent=`LEVEL: ${level}`;}else if(gameMode==="SPRINT"){topInfoLine.textContent=`LINES: ${linesClearedTotal}/${sprintLinesTarget}`;bottomInfoLine.textContent=`TIME: ${formatTime(timer)}`;}else if(gameMode==="ULTRA"){topInfoLine.textContent=`SCORE: ${score}`;bottomInfoLine.textContent=`TIME: ${formatTime(Math.max(0,timer))}`;}}
+        function draw(){ctx.fillStyle='#000';ctx.fillRect(0,0,canvas.width,canvas.height);drawGrid();if(currentBlock&&!isLineClearingAnimation)drawBlockOnCanvas(ctx,currentBlock.shape,currentBlock.x,currentBlock.y,currentBlock.colorId,BLOCK_SIZE);drawUI();}
+        
+        function gameLoop(currentTime = 0) {
+            if (isGameOver) { animationFrameId = null; return; } 
+            if (isPaused) { // If game is paused (either by direct pause or by an open panel)
+                // Only draw if a panel is open, to show the static game behind it.
+                // If just paused by top bar button, game loop effectively stops here until resumed.
+                if (currentOpenPanel && currentOpenPanel !== gameScreen) draw(); 
+                animationFrameId = requestAnimationFrame(gameLoop); 
+                return; 
+            }
+            // If not paused, proceed with game logic
+            const deltaTime = currentTime - (lastTime || currentTime) ; 
+            lastTime = currentTime;
+            if (isLineClearingAnimation) {
+                lineClearAnimationTimer += deltaTime;
+                if (lineClearAnimationTimer >= LINE_CLEAR_ANIMATION_DURATION) {
+                    isLineClearingAnimation = false; let actualLinesClearedCount = 0;
+                    linesBeingCleared.sort((a, b) => b - a); 
+                    for (const rowIndex of linesBeingCleared) { grid.splice(rowIndex, 1); grid.unshift(Array(COLS).fill(0)); actualLinesClearedCount++; }
+                    linesBeingCleared = []; 
+                    if (actualLinesClearedCount > 0) {
+                        linesClearedTotal += actualLinesClearedCount; updateScore(actualLinesClearedCount); 
+                        if (gameMode === "MARATHON") updateLevel(); if (gameMode === "SPRINT") checkSprintComplete();
+                    }
+                    currentBlock = nextBlock; nextBlock = createBlock();
+                    if (!isValidMove(currentBlock, currentBlock.x, currentBlock.y, currentBlock.shape)) handleGameOver();
+                    dropCounter = 0; 
+                }
+            } else { 
+                dropCounter += deltaTime;
+                if (dropCounter > dropInterval) {
+                    if (!moveBlock(0, 1)) fixBlock(); 
+                    if (!isLineClearingAnimation) dropCounter = 0;
+                }
+            }
+            updateTimer(deltaTime); draw(); 
+            if (!isGameOver) animationFrameId = requestAnimationFrame(gameLoop); 
+            else animationFrameId = null;
+        }
+
+        function startGame(sM){if(animationFrameId){cancelAnimationFrame(animationFrameId); animationFrameId=null;}grid=createGrid(ROWS,COLS);currentBlock=createBlock();nextBlock=createBlock();score=0;level=1;linesClearedTotal=0;dropCounter=0;isPaused=false;isGameOver=false;currentOpenPanel=null;isLineClearingAnimation=false;lineClearAnimationTimer=0;linesBeingCleared=[];lastTime=0;gameMode=sM;switch(gameMode){case"MARATHON":dropInterval=1000;level=1;break;case"SPRINT":dropInterval=700;level=1;break;case"ULTRA":dropInterval=400;level=1;break;default:dropInterval=1000;level=1;}if(gameMode==="SPRINT")timer=0;else if(gameMode==="ULTRA")timer=ultraTimeLimit;else timer=0;pausedTextOverlay.style.display='none';pauseResumeBtn.textContent='Pause';pauseResumeBtn.classList.remove('resume-state');showScreen(gameScreen);playGameMusic();updateVolume(document.getElementById('volumeSlider').value);if(!animationFrameId) gameLoop();}
+        
+        document.addEventListener('keydown',(e)=>{if(isGameOver||currentOpenPanel && currentOpenPanel !== gameScreen && currentOpenPanel !== fullPauseMenu){return;}if(isPaused&&currentOpenPanel !== fullPauseMenu && e.key.toLowerCase()!=='p')return;if(isLineClearingAnimation)return;if(e.key.toLowerCase()==='a'||e.key==='ArrowLeft')moveBlock(-1,0);if(e.key.toLowerCase()==='d'||e.key==='ArrowRight')moveBlock(1,0);if(e.key.toLowerCase()==='s'||e.key==='ArrowDown')softDrop();if(e.key.toLowerCase()==='w'||e.key==='ArrowUp'||e.key===' ')rotateBlock();if(e.key.toLowerCase()==='p'&& currentOpenPanel === gameScreen && !isPaused)togglePauseResume(true); else if(e.key.toLowerCase()==='p' && currentOpenPanel === fullPauseMenu) {document.getElementById('resumeBtnFullPause').click();} });
+        document.getElementById('moveLeftBtn').addEventListener('click',()=>{if(isLineClearingAnimation||isPaused)return;moveBlock(-1,0);if(navigator.vibrate)navigator.vibrate(10);});
+        document.getElementById('moveRightBtn').addEventListener('click',()=>{if(isLineClearingAnimation||isPaused)return;moveBlock(1,0);if(navigator.vibrate)navigator.vibrate(10);});
+        document.getElementById('rotateBtn').addEventListener('click',()=>{if(isLineClearingAnimation||isPaused)return;rotateBlock();if(navigator.vibrate)navigator.vibrate(10);});
+        document.getElementById('softDropBtn').addEventListener('click',()=>{if(isLineClearingAnimation||isPaused)return;softDrop();if(navigator.vibrate)navigator.vibrate(10);});
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedMuteState = localStorage.getItem('isGameMuted');
+            if (savedMuteState !== null) isMuted = (savedMuteState === 'true');
+            updateMuteButtonText();
+            const savedThemeClass = localStorage.getItem('selectedThemeClass');
+            if (savedThemeClass && themeDefinitions[savedThemeClass]) applyTheme(savedThemeClass);
+            else applyTheme('theme-classic-dark'); 
+            showScreen(mainMenuScreen); 
+            updateVolume(document.getElementById('volumeSlider').value); 
+        });
+    </script>
+</body>
+</html>
